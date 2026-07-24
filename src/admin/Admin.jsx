@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import api from "../api/axios";
 import {
   ShoppingBag,
   Plus,
@@ -28,7 +29,7 @@ const Admin = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/products");
+      const res = await api.get("/api/products");
       const products = res.data.data || [];
 
       const categories = new Set(products.map((p) => p.category));

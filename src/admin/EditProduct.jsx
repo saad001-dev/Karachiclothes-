@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, X, Save } from "lucide-react";
+import api from "../api/axios";
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -36,17 +37,19 @@ const EditProduct = () => {
   const getImageUrl = (path) => {
     if (!path) return "";
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    if (path.startsWith("/uploads/")) return `http://localhost:5000${path}`;
-    if (path.startsWith("./images/") || path.startsWith("images/")) {
-      return `http://localhost:5000/${path.replace("./", "")}`;
-    }
-    if (path.startsWith("/images/")) return `http://localhost:5000${path}`;
-    return path;
-  };
 
+    const API_URL = import.meta.env.VITE_API_URL || "";
+
+    if (path.startsWith("/uploads/")) return `${API_URL}${path}`;
+    if (path.startsWith("./images/") || path.startsWith("images/")) {
+      return `${API_URL}/${path.replace("./", "")}`;
+    }
+    if (path.startsWith("/images/")) return `${API_URL}${path}`;
+    return `${API_URL}/${path}`;
+  };
   const fetchProduct = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+      await api.get(`/api/products/${id}`);
       const product = res.data.data;
       setFormData({
         name: product.name || "",
@@ -101,7 +104,7 @@ const EditProduct = () => {
     if (newImage) data.append("image", newImage);
 
     try {
-      await axios.put(`http://localhost:5000/api/products/${id}`, data);
+      await api.put(`/api/products/${id}`, data);
       navigate("/admin/products");
     } catch (error) {
       console.error(error);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import api from "../api/axios";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -27,7 +28,7 @@ const ProductList = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/products");
+      await api.get("/api/products");
       setProducts(res.data.data || []);
       setLoading(false);
     } catch (error) {
@@ -41,7 +42,7 @@ const ProductList = () => {
       return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/products/${id}`);
+      await api.delete(`/api/products/${id}`);
       fetchProducts();
     } catch (error) {
       console.error(error);
@@ -54,14 +55,15 @@ const ProductList = () => {
       return "https://via.placeholder.com/100/cccccc/666666?text=No+Image";
     if (imagePath.startsWith("http://") || imagePath.startsWith("https://"))
       return imagePath;
-    if (imagePath.startsWith("/uploads/"))
-      return `http://localhost:5000${imagePath}`;
+
+    const API_URL = import.meta.env.VITE_API_URL || "";
+
+    if (imagePath.startsWith("/uploads/")) return `${API_URL}${imagePath}`;
     if (imagePath.startsWith("./images/") || imagePath.startsWith("images/")) {
-      return `http://localhost:5000/${imagePath.replace("./", "")}`;
+      return `${API_URL}/${imagePath.replace("./", "")}`;
     }
-    if (imagePath.startsWith("/images/"))
-      return `http://localhost:5000${imagePath}`;
-    return imagePath;
+    if (imagePath.startsWith("/images/")) return `${API_URL}${imagePath}`;
+    return `${API_URL}/${imagePath}`;
   };
 
   const filteredProducts = products.filter(

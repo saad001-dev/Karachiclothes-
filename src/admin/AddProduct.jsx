@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import { ArrowLeft, Upload, X } from "lucide-react";
 
 const AddProduct = () => {
@@ -69,7 +70,7 @@ const AddProduct = () => {
     if (image) data.append("image", image);
 
     try {
-      await axios.post("http://localhost:5000/api/products", data);
+      await api.post("/api/products", data);
       navigate("/admin/products");
     } catch (error) {
       console.error(error);
