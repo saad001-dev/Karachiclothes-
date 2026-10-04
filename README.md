@@ -1,20 +1,51 @@
-<<<<<<< HEAD
-# React + Vite
+# Karachi Clothes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A responsive full-stack e-commerce web app for browsing and purchasing fashion products with a clean, modern interface.
 
-Currently, two official plugins are available:
+## 🌐 Live Demo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+[View Live Site](https://karachi-clothes.vercel.app/)
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Responsive modern UI
+- Product listing and detail pages
+- Shopping cart functionality
+- Checkout flow
+- Reviews system
+- Mobile-friendly navigation
+- Telegram bot integration for orders
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
-# Karachiclothes-
->>>>>>> b7bb94e7162d086c526e7322b10c858c8aa3ad63
+**Frontend:**
+
+- React + Vite
+- Tailwind CSS
+- JavaScript
+
+**Backend:**
+
+- Node.js
+- Express.js
+- REST APIs
+
+**Integrations:**
+
+- Telegram Bot API
+
+## 📁 Project Structure
+
+my-app/
+├── backend/
+│ ├── routes/
+│ │ ├── products.js
+│ │ └── reviews.js
+│ ├── services/
+│ │ └── TelegramService.js
+│ └── uploads/
+├── public/
+├── src/
+├── index.html
+├── package.json
+└── vite.config.js
