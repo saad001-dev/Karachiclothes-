@@ -191,7 +191,7 @@ const MensModal = ({ isOpen, onClose }) => {
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => {
                           e.target.src =
-                            "https://via.placeholder.com/400x500/cccccc/666666?text=" +
+                            "https://placehold.co/400x500/cccccc/666666?text=" +
                             category.name;
                         }}
                       />

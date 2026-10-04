@@ -1,4 +1,4 @@
-// src/pages/CollectionPage.jsx - COMPLETE with GA4 Tracking
+// src/pages/CollectionPage.jsx
 import axios from "axios";
 import api from "../api/axios";
 import React, {
@@ -11,6 +11,9 @@ import React, {
 } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+
+// ✅ FIXED: Hardcoded API URL
+const API_BASE_URL = "https://karachi-clothes.vercel.app";
 
 // ✅ Custom hook for lazy loading
 const useInView = (rootMargin = "50px") => {
@@ -35,7 +38,7 @@ const useInView = (rootMargin = "50px") => {
   return [ref, inView];
 };
 
-// ✅ GA4 Tracking Functions
+// ✅ GA4 Tracking Functions - FIXED
 const trackProductClick = (product, collectionType) => {
   if (window.gtag) {
     window.gtag("event", "view_item", {
@@ -43,7 +46,7 @@ const trackProductClick = (product, collectionType) => {
       value: product.price,
       items: [
         {
-          item_id: String(product.id),
+          item_id: String(product._id || product.id), // ✅ FIXED
           item_name: product.name,
           item_category: collectionType || "collection",
           price: product.price,
@@ -71,7 +74,7 @@ const trackCategoryClick = (category, collectionType) => {
   }
 };
 
-// ✅ Memoized Product Card with optimized images
+// ✅ Memoized Product Card
 const ProductCard = memo(
   ({
     product,
@@ -85,10 +88,12 @@ const ProductCard = memo(
     const [cardRef, inView] = useInView("50px");
     const [imgError, setImgError] = useState(false);
 
+    // ✅ FIXED: Use _id || id consistently
+    const productId = product._id || product.id;
+
     const fallback =
       "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='500' viewBox='0 0 400 500'%3E%3Crect width='400' height='500' fill='%23f3f4f6'/%3E%3Ctext x='200' y='250' font-family='sans-serif' font-size='20' fill='%239ca3af' text-anchor='middle'%3EProduct%3C/text%3E%3C/svg%3E";
 
-    // ✅ Get image URL - agar error ho toh fallback use karo
     const imageUrl = imgError
       ? fallback
       : getImageUrl(product.image) || fallback;
@@ -126,13 +131,13 @@ const ProductCard = memo(
               fetchPriority={isPriority ? "high" : "auto"}
               onLoad={() => {
                 setImgError(false);
-                onImageLoad(product.id);
+                onImageLoad(productId); // ✅ FIXED
               }}
               onError={(e) => {
                 setImgError(true);
                 e.target.onerror = null;
                 e.target.src = fallback;
-                onImageLoad(product.id);
+                onImageLoad(productId); // ✅ FIXED
               }}
               width="400"
               height="500"
@@ -172,31 +177,27 @@ const ProductCard = memo(
 
 ProductCard.displayName = "ProductCard";
 
-// ✅ MAIN COLLECTION PAGE COMPONENT
+// ✅ MAIN COLLECTION PAGE
 const CollectionPage = () => {
   const { collectionType } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [loadedImages, setLoadedImages] = useState({});
   const [productsData, setProductsData] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ Loading state
+  const [loading, setLoading] = useState(true);
   const imageCache = useRef(new Map());
   const [isValid, setIsValid] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const hasChecked = useRef(false);
 
-  // ✅ Valid collection types
   const validCollections = ["summer", "formal", "luxury", "lawn", "mens"];
 
-  // ✅ SINGLE API CALL - Fixed with Environment Variable!
+  // ✅ API call with HARDCODED URL
   useEffect(() => {
     setLoading(true);
 
-    // ✅ .env se API URL le raha hai
-    const API_URL = import.meta.env.VITE_API_URL || "";
-
     axios
-      .get(`${API_URL}/api/products`)
+      .get(`${API_BASE_URL}/api/products`) // ✅ FIXED
       .then((res) => {
         console.log("✅ Products fetched:", res.data.data?.length || 0);
         setProductsData(res.data.data || []);
@@ -207,9 +208,9 @@ const CollectionPage = () => {
         setProductsData([]);
         setLoading(false);
       });
-  }, []); // ✅ Only once
+  }, []);
 
-  // ✅ VALIDATION - Check if collection type is valid
+  // ✅ VALIDATION
   useEffect(() => {
     if (hasChecked.current) return;
     hasChecked.current = true;
@@ -224,7 +225,7 @@ const CollectionPage = () => {
     }
   }, [collectionType, navigate, validCollections]);
 
-  // ✅ Track page view when collection loads
+  // ✅ Track page view
   useEffect(() => {
     if (collectionType && validCollections.includes(collectionType)) {
       if (window.gtag) {
@@ -236,41 +237,33 @@ const CollectionPage = () => {
     }
   }, [collectionType]);
 
-  // ✅ Function to get correct image URL
-  // ✅ Function to get correct image URL - FIXED
-  // ✅ Function to get correct image URL - FIXED for Vercel
+  // ✅ FIXED getImageUrl
   const getImageUrl = useCallback((imagePath) => {
     if (!imagePath) {
-      return "https://via.placeholder.com/400x500?text=No+Image";
+      return "https://placehold.co/400x500?text=No+Image";
     }
 
-    // ✅ Agar full URL hai
     if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       return imagePath;
     }
 
-    // ✅ API URL from .env
-    const API_URL = import.meta.env.VITE_API_URL || "";
-
-    // ✅ Agar uploads folder mein hai (Admin se upload)
+    // ✅ HARDCODED API URL
     if (imagePath.startsWith("/uploads/")) {
-      return `${API_URL}${imagePath}`;
+      return `${API_BASE_URL}${imagePath}`;
     }
 
-    // ✅ Agar local images folder mein hai
     if (imagePath.startsWith("./images/") || imagePath.startsWith("images/")) {
-      return `${API_URL}/${imagePath.replace("./", "")}`;
+      return `${API_BASE_URL}/${imagePath.replace("./", "")}`;
     }
 
     if (imagePath.startsWith("/images/")) {
-      return `${API_URL}${imagePath}`;
+      return `${API_BASE_URL}${imagePath}`;
     }
 
-    // ✅ Fallback - Direct path
-    return `${API_URL}/${imagePath}`;
+    return `${API_BASE_URL}/${imagePath}`;
   }, []);
 
-  // ✅ Collection data based on type
+  // ✅ Collection data
   const collectionData = useMemo(() => {
     if (!isValid || isRedirecting || !collectionType || loading) return null;
 
@@ -280,7 +273,6 @@ const CollectionPage = () => {
     let bgColor = "";
 
     console.log(`🔍 Filtering for: ${collectionType}`);
-    console.log(`📦 Total products: ${products.length}`);
 
     switch (collectionType) {
       case "summer":
@@ -288,7 +280,6 @@ const CollectionPage = () => {
           (product) =>
             product.category && product.category.toLowerCase() === "summer",
         );
-        console.log(`☀️ Summer products found: ${products.length}`);
         title = "Summer Collection";
         description =
           "Discover our premium summer collection. Lightweight, breathable and stylish fabrics.";
@@ -300,7 +291,6 @@ const CollectionPage = () => {
           (product) =>
             product.category && product.category.toLowerCase() === "formal",
         );
-        console.log(`👔 Formal products found: ${products.length}`);
         title = "Formal Collection";
         description = "Discover our premium formal collection.";
         bgColor = "from-gray-50 to-slate-50";
@@ -311,7 +301,6 @@ const CollectionPage = () => {
           (product) =>
             product.category && product.category.toLowerCase() === "luxury",
         );
-        console.log(`💎 Luxury products found: ${products.length}`);
         title = "Luxury Collection";
         description = "Discover our premium luxury collection.";
         bgColor = "from-purple-50 to-pink-50";
@@ -322,7 +311,6 @@ const CollectionPage = () => {
           (product) =>
             product.category && product.category.toLowerCase() === "lawn",
         );
-        console.log(`🌿 Lawn products found: ${products.length}`);
         title = "Lawn Collection";
         description = "Discover our premium lawn collection.";
         bgColor = "from-blue-50 to-indigo-50";
@@ -413,22 +401,7 @@ const CollectionPage = () => {
     return { products, title, description, bgColor, isMens: false };
   }, [collectionType, isValid, isRedirecting, productsData, loading]);
 
-  // ✅ Check if products exist - FIXED: No auto-redirect
-  useEffect(() => {
-    if (
-      !loading && // ✅ Only check when loading is complete
-      !isRedirecting &&
-      isValid &&
-      collectionData &&
-      !collectionData.isMens &&
-      collectionData.products.length === 0
-    ) {
-      // ✅ Don't redirect! Just show "No products" message
-      console.log(`⚠️ No products found for: ${collectionType}`);
-    }
-  }, [collectionData, isValid, isRedirecting, loading]);
-
-  // ✅ Preload first 6 images
+  // ✅ Preload first 6 images - FIXED
   useEffect(() => {
     if (
       collectionData &&
@@ -438,30 +411,35 @@ const CollectionPage = () => {
     ) {
       const imagesToPreload = collectionData.products.slice(0, 6);
       imagesToPreload.forEach((product) => {
+        const productId = product._id || product.id; // ✅ FIXED
         const imgUrl = getImageUrl(product.image);
-        if (imgUrl && !imageCache.current.has(product.id)) {
+        if (imgUrl && !imageCache.current.has(productId)) {
           const img = new Image();
           img.src = imgUrl;
           img.onload = () => {
-            imageCache.current.set(product.id, true);
-            setLoadedImages((prev) => ({ ...prev, [product.id]: true }));
+            imageCache.current.set(productId, true);
+            setLoadedImages((prev) => ({ ...prev, [productId]: true }));
           };
         }
       });
     }
   }, [collectionData, getImageUrl]);
 
-  // ✅ Handle product click
+  // ✅ Handle product click - FIXED
   const handleProductClick = useCallback(
     (product) => {
-      navigate(`/product/${product.id}`, {
+      const id = product._id || product.id; // ✅ FIXED
+      if (!id) {
+        console.error("❌ No product ID found");
+        return;
+      }
+      navigate(`/product/${id}`, {
         state: { from: collectionType },
       });
     },
     [navigate, collectionType],
   );
 
-  // ✅ Handle category click
   const handleCategoryClick = useCallback(
     (category) => {
       trackCategoryClick(category, collectionType);
@@ -470,18 +448,15 @@ const CollectionPage = () => {
     [navigate, collectionType],
   );
 
-  // ✅ Handle image load
   const handleImageLoad = useCallback((id) => {
     imageCache.current.set(id, true);
     setLoadedImages((prev) => ({ ...prev, [id]: true }));
   }, []);
 
-  // ✅ Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [collectionType]);
 
-  // ✅ Back button - Go to home
   const handleBack = () => {
     navigate("/");
     setTimeout(() => {
@@ -492,7 +467,6 @@ const CollectionPage = () => {
     }, 200);
   };
 
-  // ✅ Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -504,12 +478,10 @@ const CollectionPage = () => {
     );
   }
 
-  // ✅ If invalid or redirecting, return null
   if (!isValid || isRedirecting || !collectionData) {
     return null;
   }
 
-  // ✅ If mens collection
   if (collectionData.isMens) {
     return (
       <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
@@ -592,7 +564,6 @@ const CollectionPage = () => {
     );
   }
 
-  // ✅ For product collections
   return (
     <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -634,38 +605,20 @@ const CollectionPage = () => {
           <div className="w-24 h-1 bg-black mx-auto mt-4"></div>
         </motion.div>
 
-        {/* ✅ Fixed: Show "No products" message without redirect */}
-        {collectionData.products.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-gray-500 text-lg">
-              No products found in this collection.
-            </p>
-            <p className="text-gray-400 text-sm mt-2">
-              Add products with category "{collectionType}" from admin panel.
-            </p>
-            <button
-              onClick={handleBack}
-              className="mt-4 bg-black text-white px-6 py-2 rounded-full hover:bg-gray-800 transition"
-            >
-              Go Back Home
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
-            {collectionData.products.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                index={index}
-                onClick={handleProductClick}
-                isLoaded={!!loadedImages[product.id]}
-                onImageLoad={handleImageLoad}
-                getImageUrl={getImageUrl}
-                collectionType={collectionType}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6">
+          {collectionData.products.map((product, index) => (
+            <ProductCard
+              key={product._id || product.id}
+              product={product}
+              index={index}
+              onClick={handleProductClick}
+              isLoaded={!!loadedImages[product._id || product.id]}
+              onImageLoad={handleImageLoad}
+              getImageUrl={getImageUrl}
+              collectionType={collectionType}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

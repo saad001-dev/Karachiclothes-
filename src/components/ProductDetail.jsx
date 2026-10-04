@@ -485,7 +485,7 @@ const ProductDetail = ({
   const imageUrl =
     currentImage ||
     product.image ||
-    "https://via.placeholder.com/800x1000/cccccc/666666?text=Product";
+    "https://placehold.co/800x1000/cccccc/666666?text=Product";
 
   return (
     <AnimatePresence>
@@ -557,7 +557,7 @@ const ProductDetail = ({
                       onLoad={() => setImageLoaded(true)}
                       onError={(e) => {
                         e.target.src =
-                          "https://via.placeholder.com/800x1000/cccccc/666666?text=Product";
+                          "https://placehold.co/800x1000/cccccc/666666?text=Product";
                       }}
                     />
                   </div>
@@ -1101,7 +1101,7 @@ const ProductDetail = ({
                                 loading="lazy"
                                 onError={(e) => {
                                   e.target.src =
-                                    "https://via.placeholder.com/100x100/cccccc/666666?text=Product";
+                                    "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2750%27 y=%2750%27 font-family=%27sans-serif%27 font-size=%2712%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E";
                                 }}
                               />
                               {isSelected && (

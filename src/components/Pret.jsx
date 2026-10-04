@@ -40,7 +40,7 @@ const ProductCard = memo(
     const [cardRef, inView] = useInView("100px");
     const [imgError, setImgError] = useState(false);
     const fallback =
-      "https://via.placeholder.com/400x500/cccccc/666666?text=Product";
+      "https://placehold.co/400x500/cccccc/666666?text=Product";
 
     // ✅ Preload first 8 images (same as Summer)
     const shouldPreload = index < 8;

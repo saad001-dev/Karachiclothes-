@@ -135,7 +135,7 @@ const News = () => {
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                     onError={(e) => {
                       e.target.src =
-                        "https://via.placeholder.com/800x600/cccccc/666666?text=Featured+News";
+                        "https://placehold.co/800x600/cccccc/666666?text=Featured+News";
                     }}
                   />
                   <div className="absolute top-4 left-4 bg-black text-white text-xs font-bold px-3 py-1.5 rounded-full">
@@ -210,7 +210,7 @@ const News = () => {
                   className="w-full h-full  group-hover:scale-110 transition-transform duration-700"
                   onError={(e) => {
                     e.target.src =
-                      "https://via.placeholder.com/400x300/cccccc/666666?text=News";
+                      "https://placehold.co/400x300/cccccc/666666?text=News";
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

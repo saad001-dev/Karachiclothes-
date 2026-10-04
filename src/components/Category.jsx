@@ -8,7 +8,7 @@ import React, {
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCart } from "./CartContext";
 import { toast } from "react-hot-toast";
-import api from "../api/axios"; // ✅ API helper import
+import api from "../api/axios";
 
 // ✅ Import all data from separate files (Backup ke liye)
 import {
@@ -41,19 +41,18 @@ export const productData = {
 };
 
 // ============================================
-// LAZY IMAGE COMPONENT - FIXED for Vercel
+// LAZY IMAGE COMPONENT
 // ============================================
 const LazyImage = ({ src, alt, className, ...props }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [error, setError] = useState(false);
 
-  // ✅ FIX: Image URL - .env se API URL le raha hai
   const getImageUrl = (path) => {
-    if (!path) return "https://via.placeholder.com/400x500?text=No+Image";
+    if (!path) return "https://placehold.co/400x500?text=No+Image";
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    
+
     const API_URL = import.meta.env.VITE_API_URL || "";
-    
+
     if (path.startsWith("/uploads/")) {
       return `${API_URL}${path}`;
     }
@@ -88,7 +87,7 @@ const LazyImage = ({ src, alt, className, ...props }) => {
         />
       ) : (
         <img
-          src="https://via.placeholder.com/400x500/cccccc/666666?text=No+Image"
+          src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27500%27 viewBox=%270 0 400 500%27%3E%3Crect width=%27400%27 height=%27500%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%27200%27 y=%27250%27 font-family=%27sans-serif%27 font-size=%2720%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E"
           alt="Placeholder"
           className="w-full h-full object-cover"
         />
@@ -110,7 +109,7 @@ const Category = () => {
   const [loading, setLoading] = useState(true);
   const hasRedirected = useRef(false);
 
-  // ✅ FIXED: Backend se data fetch - api helper use karo
+  // ✅ Fetch from backend
   useEffect(() => {
     if (!categorySlug) {
       navigate("/", { replace: true });
@@ -120,7 +119,7 @@ const Category = () => {
     setLoading(true);
 
     api
-      .get("/api/products") // ✅ localhost hatao
+      .get("/api/products")
       .then((res) => {
         const allProducts = res.data.data || [];
         const filtered = allProducts.filter(
@@ -145,7 +144,7 @@ const Category = () => {
       });
   }, [categorySlug, navigate]);
 
-  // ✅ Redirect if invalid category (check after loading)
+  // ✅ Redirect if invalid category
   useEffect(() => {
     if (!loading && products.length === 0 && !hasRedirected.current) {
       hasRedirected.current = true;
@@ -189,7 +188,7 @@ const Category = () => {
     (product, e) => {
       e.stopPropagation();
       addToCart({
-        id: product.id,
+        id: product._id || product.id, // ✅ FIX
         name: product.name,
         price: product.price,
         image: product.image,
@@ -203,9 +202,15 @@ const Category = () => {
     [addToCart],
   );
 
+  // ✅ FIX: MongoDB _id use karo
   const handleProductClick = useCallback(
     (product) => {
-      navigate(`/product/${product.id}`);
+      const id = product._id || product.id;
+      if (!id) {
+        toast.error("Product ID not found");
+        return;
+      }
+      navigate(`/product/${id}`);
     },
     [navigate],
   );
@@ -218,46 +223,10 @@ const Category = () => {
     navigate(-1);
   };
 
-  // ✅ Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ If no category slug, return null
   if (!categorySlug) {
     return null;
   }
 
-  // ✅ No products found
-  if (products.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800">
-            No products found in this category
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Category: <span className="font-semibold">{categorySlug}</span>
-          </p>
-          <button
-            onClick={() => navigate("/")}
-            className="mt-4 bg-black text-white px-6 py-2 rounded-full hover:bg-gray-800 transition"
-          >
-            Go Back Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ Render Products
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -317,53 +286,45 @@ const Category = () => {
         </div>
 
         {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              No products found matching your search.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => handleProductClick(product)}
-                className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer"
-              >
-                <div className="relative aspect-square overflow-hidden bg-gray-100">
-                  <LazyImage
-                    src={product.image}
-                    alt={product.name}
-                    className="group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <button
-                    onClick={(e) => handleAddToCart(product, e)}
-                    className="absolute md:block hidden bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-black px-6 py-2 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 hover:bg-black hover:text-white shadow-lg"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-                <div className="p-4">
-                  <h3 className="text-sm font-medium text-gray-800 truncate">
-                    {product.name}
-                  </h3>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm font-bold text-black">
-                      Rs. {product.price.toLocaleString()}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          {filteredProducts.map((product) => (
+            <div
+              key={product._id || product.id}
+              onClick={() => handleProductClick(product)}
+              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer"
+            >
+              <div className="relative aspect-square overflow-hidden bg-gray-100">
+                <LazyImage
+                  src={product.image}
+                  alt={product.name}
+                  className="group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <button
+                  onClick={(e) => handleAddToCart(product, e)}
+                  className="absolute md:block hidden bottom-4 left-1/2 transform -translate-x-1/2 bg-white text-black px-6 py-2 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 hover:bg-black hover:text-white shadow-lg"
+                >
+                  Add to Cart
+                </button>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium text-gray-800 truncate">
+                  {product.name}
+                </h3>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm font-bold text-black">
+                    Rs. {product.price.toLocaleString()}
+                  </p>
+                  {product.originalPrice && (
+                    <p className="text-xs text-gray-400 line-through">
+                      Rs. {product.originalPrice.toLocaleString()}
                     </p>
-                    {product.originalPrice && (
-                      <p className="text-xs text-gray-400 line-through">
-                        Rs. {product.originalPrice.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -492,7 +453,7 @@ export const CategorySection = () => {
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   onError={(e) => {
                     e.target.src =
-                      "https://via.placeholder.com/400x500/cccccc/666666?text=" +
+                      "https://placehold.co/400x500/cccccc/666666?text=" +
                       category.name;
                   }}
                 />

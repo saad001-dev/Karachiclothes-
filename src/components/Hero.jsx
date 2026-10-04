@@ -397,7 +397,7 @@ max-h-[720px] overflow-hidden "
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.target.src =
-                    "https://via.placeholder.com/1920x600/cccccc/666666?text=Image";
+                    "https://placehold.co/1920x600/cccccc/666666?text=Image";
                 }}
               />
             </motion.div>
@@ -487,7 +487,7 @@ max-h-[720px] overflow-hidden "
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 onError={(e) => {
                   e.target.src =
-                    "https://via.placeholder.com/600x400/cccccc/666666?text=" +
+                    "https://placehold.co/600x400/cccccc/666666?text=" +
                     card.subtitle;
                 }}
               />

@@ -1,7 +1,7 @@
+// src/admin/EditProduct.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, X, Save } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import api from "../api/axios";
 
 const EditProduct = () => {
@@ -16,9 +16,8 @@ const EditProduct = () => {
     category: "",
     description: "",
     stock: "",
+    image: "",
   });
-  const [newImage, setNewImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
 
   const categories = [
     { value: "grace", label: "Grace" },
@@ -28,29 +27,25 @@ const EditProduct = () => {
     { value: "summer", label: "Summer" },
     { value: "formal", label: "Formal" },
     { value: "mens", label: "Mens" },
+    { value: "narkins", label: "Narkins" },
+    { value: "florence", label: "Florence" },
+    { value: "asco", label: "ASCO" },
+    { value: "muneeb", label: "Muneeb" },
+    { value: "alkaram", label: "Al-Karam" },
+    { value: "unstitched", label: "Unstitched Collection" },
+    { value: "washwear", label: "Wash & Wear" },
+    { value: "zainjee", label: "Zain Jee" },
   ];
 
   useEffect(() => {
     fetchProduct();
   }, [id]);
 
-  const getImageUrl = (path) => {
-    if (!path) return "";
-    if (path.startsWith("http://") || path.startsWith("https://")) return path;
-
-    const API_URL = import.meta.env.VITE_API_URL || "";
-
-    if (path.startsWith("/uploads/")) return `${API_URL}${path}`;
-    if (path.startsWith("./images/") || path.startsWith("images/")) {
-      return `${API_URL}/${path.replace("./", "")}`;
-    }
-    if (path.startsWith("/images/")) return `${API_URL}${path}`;
-    return `${API_URL}/${path}`;
-  };
   const fetchProduct = async () => {
     try {
-      await api.get(`/api/products/${id}`);
+      const res = await api.get(`/api/products/${id}`);
       const product = res.data.data;
+
       setFormData({
         name: product.name || "",
         price: product.price || "",
@@ -58,10 +53,8 @@ const EditProduct = () => {
         category: product.category || "",
         description: product.description || "",
         stock: product.stock || "",
+        image: product.image || "",
       });
-      if (product.image) {
-        setImagePreview(getImageUrl(product.image));
-      }
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -77,38 +70,31 @@ const EditProduct = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeImage = () => {
-    setNewImage(null);
-    setImagePreview("");
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
-    const data = new FormData();
-    data.append("name", formData.name);
-    data.append("price", formData.price);
-    data.append("originalPrice", formData.originalPrice);
-    data.append("category", formData.category);
-    data.append("description", formData.description);
-    data.append("stock", formData.stock);
-    if (newImage) data.append("image", newImage);
-
     try {
-      await api.put(`/api/products/${id}`, data);
+      const updateData = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        originalPrice: formData.originalPrice
+          ? parseFloat(formData.originalPrice)
+          : null,
+        category: formData.category,
+        description: formData.description,
+        stock: parseInt(formData.stock),
+        image: formData.image,
+      };
+
+      await api.put(`/api/products/${id}`, updateData);
+      alert("Product updated successfully!");
       navigate("/admin/products");
     } catch (error) {
       console.error(error);
-      alert("Update failed");
+      alert(
+        "Update failed: " + (error.response?.data?.message || error.message),
+      );
       setSaving(false);
     }
   };
@@ -141,7 +127,6 @@ const EditProduct = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Name *
@@ -151,12 +136,11 @@ const EditProduct = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
 
-            {/* Price & Original Price */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -167,7 +151,7 @@ const EditProduct = () => {
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl"
                   required
                 />
               </div>
@@ -180,12 +164,11 @@ const EditProduct = () => {
                   name="originalPrice"
                   value={formData.originalPrice}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl"
                 />
               </div>
             </div>
 
-            {/* Category & Stock */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -195,7 +178,7 @@ const EditProduct = () => {
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl"
                   required
                 >
                   <option value="">Select Category</option>
@@ -215,13 +198,12 @@ const EditProduct = () => {
                   name="stock"
                   value={formData.stock}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl"
                   required
                 />
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -230,61 +212,48 @@ const EditProduct = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl resize-none"
                 rows="4"
               />
             </div>
 
-            {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Image
+                Product Image URL *
               </label>
-              {imagePreview ? (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-xl border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {newImage ? "New image selected" : "Current image"}
-                  </p>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 transition bg-gray-50">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">
-                      Click to upload new image
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PNG, JPG, WEBP (Max 5MB)
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
+              <input
+                type="url"
+                name="image"
+                value={formData.image}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl"
+                placeholder="https://i.ibb.co/xxxxx/image.jpg"
+                required
+              />
             </div>
 
-            {/* Submit */}
+            {formData.image && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Preview:
+                </p>
+                <img
+                  src={formData.image}
+                  alt="Preview"
+                  className="w-32 h-32 object-cover rounded-xl border border-gray-200"
+                  onError={(e) => {
+                    e.target.src =
+                      "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27128%27 height=%27128%27 viewBox=%270 0 128 128%27%3E%3Crect width=%27128%27 height=%27128%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2764%27 y=%2764%27 font-family=%27sans-serif%27 font-size=%2710%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3EInvalid%3C/text%3E%3C/svg%3E";
+                  }}
+                />
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>

@@ -27,7 +27,7 @@ const LazyImage = ({ src, alt, className, onError }) => {
             onError(e);
           } else {
             e.target.src =
-              "https://via.placeholder.com/400x500/cccccc/666666?text=No+Image";
+              "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27500%27 viewBox=%270 0 400 500%27%3E%3Crect width=%27400%27 height=%27500%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%27200%27 y=%27250%27 font-family=%27sans-serif%27 font-size=%2720%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E";
           }
           setImageLoaded(true);
         }}

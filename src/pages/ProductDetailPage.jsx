@@ -1,5 +1,4 @@
-// pages/ProductDetailPage.jsx - COMPLETE FIXED with Backend Data
-
+// pages/ProductDetailPage.jsx - COMPLETE FIXED
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useCart } from "../components/CartContext";
@@ -8,8 +7,11 @@ import { productData } from "../components/Category";
 import { productsData } from "../data/productsApi";
 import api from "../api/axios";
 
+// ✅ HARDCODED API URL
+const API_BASE_URL = "https://karachi-clothes.vercel.app";
+
 const ProductDetailPage = () => {
-  const { productId } = useParams();
+  const { productId } = useParams(); // Route param name
   const navigate = useNavigate();
   const location = useLocation();
   const { addToCart } = useCart();
@@ -23,6 +25,7 @@ const ProductDetailPage = () => {
   const [categoryThumbnails, setCategoryThumbnails] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [zoomStyle, setZoomStyle] = useState({
     transformOrigin: "center center",
@@ -31,33 +34,34 @@ const ProductDetailPage = () => {
   const [isZooming, setIsZooming] = useState(false);
   const imageRef = useRef(null);
 
-  // ✅ Fetch all products from backend on mount
+  // ✅ Fetch all products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        console.log("🔍 Fetching all products...");
         const res = await api.get("/api/products");
-        setAllProducts(res.data.data || []);
+        const data = res.data.data || [];
+        console.log(`✅ Loaded ${data.length} products`);
+        setAllProducts(data);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("❌ Error fetching products:", error);
         setAllProducts([]);
       }
     };
     fetchProducts();
   }, []);
 
-  // ✅ Get image URL - FIXED for Vercel
+  // ✅ FIXED getImageUrl with HARDCODED URL
   const getImageUrl = useCallback((path) => {
-    if (!path) return "";
+    if (!path) return "https://placehold.co/400x500?text=No+Image";
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
-    const API_URL = import.meta.env.VITE_API_URL || "";
-
-    if (path.startsWith("/uploads/")) return `${API_URL}${path}`;
+    if (path.startsWith("/uploads/")) return `${API_BASE_URL}${path}`;
     if (path.startsWith("./images/") || path.startsWith("images/")) {
-      return `${API_URL}/${path.replace("./", "")}`;
+      return `${API_BASE_URL}/${path.replace("./", "")}`;
     }
-    if (path.startsWith("/images/")) return `${API_URL}${path}`;
-    return `${API_URL}/${path}`;
+    if (path.startsWith("/images/")) return `${API_BASE_URL}${path}`;
+    return `${API_BASE_URL}/${path}`;
   }, []);
 
   const handleBack = () => {
@@ -68,109 +72,102 @@ const ProductDetailPage = () => {
     navigate(-1);
   };
 
-  // ✅ FIND PRODUCT - Backend + Local data
-  const findProductById = (id) => {
-    let foundProduct = null;
-    let foundCategory = null;
+  // ✅ FIXED: MongoDB _id ke saath kaam karo
+  const findProductById = useCallback(
+    (id) => {
+      if (!id) return { product: null, category: null };
 
-    // ✅ 1. Pehle backend data mein dhoondo
-    if (allProducts.length > 0) {
-      const found = allProducts.find((p) => p.id === parseInt(id));
-      if (found) {
-        foundProduct = { ...found };
-        foundCategory = found.category || "summer";
-        return { product: foundProduct, category: foundCategory };
-      }
-    }
+      const idStr = String(id);
+      let foundProduct = null;
+      let foundCategory = null;
 
-    // ✅ 2. Agar backend mein nahi mila toh local data mein dhoondo
-    if (productData) {
-      Object.keys(productData).forEach((category) => {
-        const items = productData[category];
-        if (Array.isArray(items)) {
-          const item = items.find((p) => p.id === parseInt(id));
-          if (item) {
-            foundProduct = { ...item, category };
-            foundCategory = category;
-          }
+      // ✅ 1. Backend data
+      if (allProducts.length > 0) {
+        const found = allProducts.find(
+          (p) => String(p._id) === idStr || String(p.id) === idStr, // ✅ FIX
+        );
+        if (found) {
+          return {
+            product: { ...found },
+            category: found.category || "summer",
+          };
         }
-      });
-    }
-
-    // ✅ 3. Agar local mein bhi nahi mila toh productsData mein dhoondo
-    if (!foundProduct && productsData) {
-      const apiProduct = productsData.find((p) => p.id === parseInt(id));
-      if (apiProduct) {
-        let category = "summer";
-        if (id >= 20001 && id <= 20020) category = "lawn";
-        else if (id >= 30001 && id <= 30020) category = "formal";
-        else if (id >= 40001 && id <= 40029) category = "luxury";
-        foundProduct = { ...apiProduct, category };
-        foundCategory = category;
       }
-    }
 
-    return { product: foundProduct, category: foundCategory };
-  };
+      // ✅ 2. Local data
+      if (productData) {
+        Object.keys(productData).forEach((category) => {
+          const items = productData[category];
+          if (Array.isArray(items)) {
+            const item = items.find((p) => String(p.id) === idStr); // ✅ FIX
+            if (item) {
+              foundProduct = { ...item, category };
+              foundCategory = category;
+            }
+          }
+        });
+        if (foundProduct)
+          return { product: foundProduct, category: foundCategory };
+      }
 
-  const getCategoryProducts = (categorySlug) => {
-    // ✅ Backend data se filter karo
-    if (allProducts.length > 0 && categorySlug) {
-      return allProducts.filter(
-        (p) =>
-          p.category &&
-          p.category.toLowerCase() === categorySlug.toLowerCase() &&
-          p.id !== parseInt(productId),
-      );
-    }
+      // ✅ 3. productsApi.js
+      if (productsData) {
+        const apiProduct = productsData.find((p) => String(p.id) === idStr); // ✅ FIX
+        if (apiProduct) {
+          let category = "summer";
+          const numId = parseInt(idStr);
+          if (numId >= 20001 && numId <= 20020) category = "lawn";
+          else if (numId >= 30001 && numId <= 30020) category = "formal";
+          else if (numId >= 40001 && numId <= 40029) category = "luxury";
+          return { product: { ...apiProduct, category }, category };
+        }
+      }
 
-    // ✅ Fallback - local data
-    if (categorySlug === "summer") {
-      return productsData.filter(
-        (p) => p.id !== parseInt(productId) && p.id >= 10001 && p.id <= 10020,
-      );
-    }
-    if (categorySlug === "lawn") {
-      return productsData.filter(
-        (p) => p.id !== parseInt(productId) && p.id >= 20001 && p.id <= 20011,
-      );
-    }
-    if (categorySlug === "formal") {
-      return productsData.filter(
-        (p) => p.id !== parseInt(productId) && p.id >= 30001 && p.id <= 30020,
-      );
-    }
-    if (categorySlug === "pret" || categorySlug === "luxury") {
-      return productsData.filter(
-        (p) => p.id !== parseInt(productId) && p.id >= 40001 && p.id <= 40029,
-      );
-    }
-    if (categorySlug && productData[categorySlug]) {
-      return productData[categorySlug].filter(
-        (p) => p.id !== parseInt(productId),
-      );
-    }
-    return [];
-  };
+      return { product: null, category: null };
+    },
+    [allProducts],
+  );
 
+  // ✅ Get similar products - FIXED
+  const getCategoryProducts = useCallback(
+    (categorySlug) => {
+      if (!categorySlug) return [];
+
+      const idStr = String(productId);
+
+      if (allProducts.length > 0) {
+        return allProducts.filter(
+          (p) =>
+            p.category &&
+            p.category.toLowerCase() === categorySlug.toLowerCase() &&
+            String(p._id) !== idStr &&
+            String(p.id) !== idStr,
+        );
+      }
+      return [];
+    },
+    [allProducts, productId],
+  );
+
+  // ✅ MAIN useEffect - FIXED: don't wait for allProducts
   useEffect(() => {
-    // ✅ Wait for allProducts to load
-    if (allProducts.length === 0) return;
+    console.log("🔍 Looking for product ID:", productId);
 
     const { product: foundProduct, category: foundCategory } =
       findProductById(productId);
 
     if (foundProduct) {
+      console.log("✅ Product found:", foundProduct.name);
       setProduct(foundProduct);
 
-      // ✅ GA4 Tracking
+      // GA4
       if (window.gtag) {
         window.gtag("event", "view_item", {
           currency: "PKR",
           value: foundProduct.price,
           items: [
             {
-              item_id: String(foundProduct.id),
+              item_id: String(foundProduct._id || foundProduct.id),
               item_name: foundProduct.name,
               item_category: foundCategory || "",
               price: foundProduct.price,
@@ -179,19 +176,19 @@ const ProductDetailPage = () => {
         });
       }
 
-      let imagePath = foundProduct.image;
+      const imagePath = foundProduct.image;
       setCurrentImage(getImageUrl(imagePath));
       setCurrentTitle(foundProduct.name);
       setCurrentDescription(
         foundProduct.description ||
-          "Premium quality fabric perfect for all occasions. Crafted with the finest materials to ensure comfort, durability, and style.",
+          "Premium quality fabric perfect for all occasions.",
       );
 
-      // ✅ Get similar products
+      // Similar products
       const products = getCategoryProducts(foundCategory);
       setCategoryProducts(products);
 
-      // ✅ Thumbnails
+      // Thumbnails
       const thumbnails = [
         {
           image: getImageUrl(imagePath),
@@ -202,24 +199,34 @@ const ProductDetailPage = () => {
       ];
 
       if (products && products.length > 0) {
-        const otherProducts = products.filter((p) => p.id !== foundProduct.id);
-        const otherItems = otherProducts.slice(0, 4).map((p) => ({
+        const otherProducts = products.slice(0, 4);
+        const otherItems = otherProducts.map((p) => ({
           image: getImageUrl(p.image),
           title: p.name,
-          description:
-            p.description ||
-            "Premium quality fabric perfect for all occasions.",
+          description: p.description || "Premium quality fabric",
           isDefault: false,
         }));
         thumbnails.push(...otherItems);
       }
 
       setCategoryThumbnails(thumbnails);
+      setLoading(false);
     } else {
-      console.error("❌ Product not found for ID:", productId);
-      navigate("/");
+      // ✅ Agar allProducts load ho gaya hai aur phir bhi nahi mila
+      if (allProducts.length > 0) {
+        console.error("❌ Product not found for ID:", productId);
+        setLoading(false);
+        // Don't redirect - show "not found" message
+      }
+      // Warna wait karo allProducts load hone ka
     }
-  }, [productId, navigate, allProducts, getImageUrl]);
+  }, [
+    productId,
+    allProducts,
+    getImageUrl,
+    getCategoryProducts,
+    findProductById,
+  ]);
 
   const handleThumbnailClick = (thumbnail) => {
     setCurrentImage(thumbnail.image);
@@ -241,17 +248,15 @@ const ProductDetailPage = () => {
   };
 
   const handleQuantityChange = (action) => {
-    if (action === "increase") {
-      setQuantity((prev) => prev + 1);
-    } else if (action === "decrease" && quantity > 1) {
+    if (action === "increase") setQuantity((prev) => prev + 1);
+    else if (action === "decrease" && quantity > 1)
       setQuantity((prev) => prev - 1);
-    }
   };
 
   const handleAddToCart = () => {
     if (!product) return;
     const productToAdd = {
-      id: product.id,
+      id: product._id || product.id,
       name: currentTitle || product.name,
       price: product.price,
       image: currentImage || product.image,
@@ -265,7 +270,8 @@ const ProductDetailPage = () => {
     });
   };
 
-  if (!product) {
+  // ✅ Loading state
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -276,7 +282,29 @@ const ProductDetailPage = () => {
     );
   }
 
-  const imageUrl = currentImage || product.image;
+  // ✅ Not found state
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <p className="text-xl font-semibold text-gray-800">
+            Product Not Found
+          </p>
+          <p className="text-gray-500 mt-2 text-sm">
+            The product you're looking for doesn't exist or has been removed.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="mt-6 bg-black text-white px-6 py-3 rounded-full hover:bg-gray-800 transition"
+          >
+            Go Back Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const imageUrl = currentImage || getImageUrl(product.image);
 
   return (
     <div className="min-h-screen bg-white py-8 px-4 sm:px-6 lg:px-8">
@@ -302,7 +330,7 @@ const ProductDetailPage = () => {
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          {/* Product Image Section */}
+          {/* Image Section */}
           <div className="relative">
             <div
               ref={imageRef}
@@ -315,7 +343,7 @@ const ProductDetailPage = () => {
                 src={imageUrl}
                 alt={currentTitle || product.name}
                 draggable={false}
-                className="w-full h-full object-cover object-center image-rendering-auto transition-transform duration-75 ease-out"
+                className="w-full h-full object-cover object-center transition-transform duration-75 ease-out"
                 style={
                   isZooming
                     ? zoomStyle
@@ -327,7 +355,7 @@ const ProductDetailPage = () => {
                 onLoad={() => setImageLoaded(true)}
                 onError={(e) => {
                   e.target.src =
-                    "https://via.placeholder.com/800x1200/cccccc/666666?text=Product";
+                    "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27800%27 height=%271200%27 viewBox=%270 0 800 1200%27%3E%3Crect width=%27800%27 height=%271200%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%27400%27 y=%27600%27 font-family=%27sans-serif%27 font-size=%2740%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>
@@ -337,17 +365,17 @@ const ProductDetailPage = () => {
             </div>
           </div>
 
-          {/* Product Info Section */}
+          {/* Info Section */}
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-4 flex-wrap">
               <span>Premium Quality</span>
               <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
               <span>In Stock</span>
-              {product.category === "summer" && (
+              {product.category && (
                 <>
                   <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                  <span className="bg-orange-50 text-orange-700 text-xs font-semibold px-3 py-1 rounded-full border border-orange-200">
-                    Summer Collection
+                  <span className="bg-orange-50 text-orange-700 text-xs font-semibold px-3 py-1 rounded-full border border-orange-200 capitalize">
+                    {product.category}
                   </span>
                 </>
               )}
@@ -360,7 +388,7 @@ const ProductDetailPage = () => {
             <p className="text-gray-500 text-sm my-7 leading-relaxed">
               {currentDescription ||
                 product.description ||
-                "Premium quality fabric perfect for all occasions. Crafted with the finest materials to ensure comfort, durability, and style."}
+                "Premium quality fabric."}
             </p>
 
             <div className="flex items-center gap-4 mb-4">
@@ -441,7 +469,7 @@ const ProductDetailPage = () => {
                 <button
                   onClick={() => handleQuantityChange("decrease")}
                   disabled={quantity <= 1}
-                  className={`w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center transition-colors duration-300 ${quantity <= 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
+                  className={`w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center ${quantity <= 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"}`}
                 >
                   <svg
                     className="w-4 h-4"
@@ -462,7 +490,7 @@ const ProductDetailPage = () => {
                 </span>
                 <button
                   onClick={() => handleQuantityChange("increase")}
-                  className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors duration-300"
+                  className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-100"
                 >
                   <svg
                     className="w-4 h-4"
@@ -479,12 +507,9 @@ const ProductDetailPage = () => {
                   </svg>
                 </button>
               </div>
-              <span className="text-xs text-gray-400">
-                ({quantity} item{quantity > 1 ? "s" : ""})
-              </span>
             </div>
 
-            <span>Note:</span>
+            <span className="text-sm font-medium">Note:</span>
             <p className="text-sm py-3 text-gray-600">
               Actual product color may vary slightly due to studio lighting
               during photography and differences in device screen settings.
@@ -492,7 +517,7 @@ const ProductDetailPage = () => {
 
             {categoryThumbnails.length > 1 && (
               <div className="mt-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-medium text-gray-700">
                     Similar Products:
                   </span>
@@ -507,27 +532,18 @@ const ProductDetailPage = () => {
                       <button
                         key={index}
                         onClick={() => handleThumbnailClick(thumb)}
-                        className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all duration-300 ${isSelected ? "border-black shadow-lg scale-105" : "border-gray-200 hover:border-gray-400 hover:scale-105"}`}
-                        title={thumb.isDefault ? "Default Image" : thumb.title}
+                        className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all ${isSelected ? "border-black shadow-lg scale-105" : "border-gray-200 hover:border-gray-400 hover:scale-105"}`}
                       >
                         <img
                           src={thumb.image}
-                          alt={thumb.isDefault ? "Default" : thumb.title}
+                          alt={thumb.title}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           onError={(e) => {
                             e.target.src =
-                              "https://via.placeholder.com/100x100/cccccc/666666?text=Product";
+                              "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2750%27 y=%2750%27 font-family=%27sans-serif%27 font-size=%2712%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3ENo Image%3C/text%3E%3C/svg%3E";
                           }}
                         />
-                        {isSelected && (
-                          <div className="absolute inset-0 border-2 border-white/30 rounded-lg pointer-events-none"></div>
-                        )}
-                        {thumb.isDefault && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] text-center py-0.5 truncate">
-                            Default
-                          </div>
-                        )}
                       </button>
                     );
                   })}
@@ -538,13 +554,13 @@ const ProductDetailPage = () => {
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-black text-white px-6 py-4 text-sm font-semibold border border-gray-700 hover:bg-gray-900 hover:border-gray-500 transition-all duration-300 hover:scale-[1.02]"
+                className="flex-1 bg-black text-white px-6 py-4 text-sm font-semibold hover:bg-gray-900 transition"
               >
                 Add to Cart ({quantity})
               </button>
               <Link
                 to="/"
-                className="flex-1 border-2 border-gray-500 text-gray-600 px-6 py-4 text-sm font-medium hover:border-black hover:text-black transition-all duration-300 text-center"
+                className="flex-1 border-2 border-gray-500 text-gray-600 px-6 py-4 text-sm font-medium hover:border-black hover:text-black transition text-center"
               >
                 Continue Shopping
               </Link>

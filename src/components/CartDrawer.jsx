@@ -270,7 +270,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
       try {
         const response = await fetch(
-          "https://karachiclothes.vercel.app/api/orders",
+          `${import.meta.env.VITE_API_URL}/api/orders`,
           {
             method: "POST",
             headers: {
@@ -461,7 +461,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     className="w-20 h-20 object-cover rounded-xl"
                     onError={(e) => {
                       e.target.src =
-                        "https://via.placeholder.com/80x80/cccccc/666666?text=No+Image";
+                        "https://placehold.co/80x80/cccccc/666666?text=No+Image";
                     }}
                   />
                   <div className="flex-1">

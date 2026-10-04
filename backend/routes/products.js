@@ -1,41 +1,39 @@
-const upload = require("../middleware/upload");
+// backend/routes/products.js
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
-
 const router = express.Router();
-const productsFile = path.join(__dirname, "../products.json");
+const connectDB = require("../config/db");
+const Product = require("../models/Product");
 
-// Helper: Read products
-const readProducts = () => {
-  try {
-    const data = fs.readFileSync(productsFile, "utf8");
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-};
-
-// Helper: Write products
-const writeProducts = (products) => {
-  fs.writeFileSync(productsFile, JSON.stringify(products, null, 2), "utf8");
+// Helper: Ensure DB connected
+const ensureDB = async () => {
+  await connectDB();
 };
 
 // ===== GET All Products =====
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const products = readProducts();
-    res.json({ success: true, data: products });
+    await ensureDB();
+    console.log("📦 Fetching all products...");
+
+    const products = await Product.find().sort({ createdAt: -1 });
+    console.log(`✅ Found ${products.length} products`);
+
+    res.json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
+    console.error("❌ Fetch error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // ===== GET Single Product =====
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const products = readProducts();
-    const product = products.find((p) => p.id == req.params.id);
+    await ensureDB();
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res
         .status(404)
@@ -47,27 +45,34 @@ router.get("/:id", (req, res) => {
   }
 });
 
-// ===== POST Add Product =====
-router.post("/", upload.single("image"), (req, res) => {
+// ===== POST Add Product (with Image URL) =====
+router.post("/", async (req, res) => {
   try {
-    const products = readProducts();
+    await ensureDB();
+    console.log("📦 Creating product:", req.body.name);
 
-    const { name, price, originalPrice, category, description, stock } =
+    const { name, price, originalPrice, category, description, stock, image } =
       req.body;
 
-    const newProduct = {
-      id: Date.now(),
+    // Validation
+    if (!name || !price || !category || !image) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, price, category and image URL are required",
+      });
+    }
+
+    const newProduct = await Product.create({
       name,
       price: Number(price),
-      originalPrice: Number(originalPrice) || null,
+      originalPrice: originalPrice ? Number(originalPrice) : null,
       category: category || "uncategorized",
       description: description || "",
       stock: Number(stock) || 0,
-      image: req.file ? `/uploads/${req.file.filename}` : "",
-    };
+      image: image, // ✅ Direct URL
+    });
 
-    products.push(newProduct);
-    writeProducts(products);
+    console.log("✅ Product created:", newProduct._id);
 
     res.status(201).json({
       success: true,
@@ -75,84 +80,73 @@ router.post("/", upload.single("image"), (req, res) => {
       data: newProduct,
     });
   } catch (error) {
+    console.error("❌ Create error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // ===== PUT Update Product =====
-router.put("/:id", upload.single("image"), (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
-    const products = readProducts();
-    const index = products.findIndex((p) => p.id == req.params.id);
+    await ensureDB();
+    console.log("✏️ Updating product:", req.params.id);
 
-    if (index === -1) {
+    const { name, price, originalPrice, category, description, stock, image } =
+      req.body;
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (price !== undefined) updateData.price = Number(price);
+    if (originalPrice !== undefined)
+      updateData.originalPrice = originalPrice ? Number(originalPrice) : null;
+    if (category) updateData.category = category;
+    if (description !== undefined) updateData.description = description;
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (image) updateData.image = image;
+
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    const { name, price, originalPrice, category, description, stock } =
-      req.body;
-
-    // Update fields
-    products[index].name = name || products[index].name;
-    products[index].price = Number(price) || products[index].price;
-    products[index].originalPrice =
-      Number(originalPrice) || products[index].originalPrice;
-    products[index].category = category || products[index].category;
-    products[index].description = description || products[index].description;
-    products[index].stock =
-      Number(stock) !== undefined ? Number(stock) : products[index].stock;
-
-    // If new image uploaded
-    if (req.file) {
-      // Delete old image file (optional)
-      if (products[index].image) {
-        const oldPath = path.join(__dirname, "..", products[index].image);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
-      }
-      products[index].image = `/uploads/${req.file.filename}`;
-    }
-
-    writeProducts(products);
+    console.log("✅ Product updated");
 
     res.json({
       success: true,
       message: "Product updated successfully",
-      data: products[index],
+      data: product,
     });
   } catch (error) {
+    console.error("❌ Update error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // ===== DELETE Product =====
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const products = readProducts();
-    const index = products.findIndex((p) => p.id == req.params.id);
+    await ensureDB();
+    console.log("🗑️ Deleting product:", req.params.id);
 
-    if (index === -1) {
+    const product = await Product.findByIdAndDelete(req.params.id);
+
+    if (!product) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    // Delete image file
-    if (products[index].image) {
-      const imagePath = path.join(__dirname, "..", products[index].image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-
-    products.splice(index, 1);
-    writeProducts(products);
-
+    console.log("✅ Product deleted");
     res.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
+    console.error("❌ Delete error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

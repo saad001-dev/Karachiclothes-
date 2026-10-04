@@ -1,8 +1,8 @@
+// src/admin/AddProduct.jsx
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon } from "lucide-react";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -14,9 +14,8 @@ const AddProduct = () => {
     category: "",
     description: "",
     stock: "",
+    image: "",
   });
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
 
   const categories = [
     { value: "grace", label: "Grace" },
@@ -43,38 +42,32 @@ const AddProduct = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const data = new FormData();
-    data.append("name", formData.name);
-    data.append("price", formData.price);
-    data.append("originalPrice", formData.originalPrice);
-    data.append("category", formData.category);
-    data.append("description", formData.description);
-    data.append("stock", formData.stock);
-    if (image) data.append("image", image);
-
     try {
-      await api.post("/api/products", data);
+      const productData = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        originalPrice: formData.originalPrice
+          ? parseFloat(formData.originalPrice)
+          : null,
+        category: formData.category,
+        description: formData.description,
+        stock: parseInt(formData.stock),
+        image: formData.image,
+      };
+
+      await api.post("/api/products", productData);
+      alert("Product added successfully!");
       navigate("/admin/products");
     } catch (error) {
       console.error(error);
-      alert("Product Add Failed");
+      alert(
+        "Product Add Failed: " +
+          (error.response?.data?.message || error.message),
+      );
       setLoading(false);
     }
   };
@@ -82,7 +75,6 @@ const AddProduct = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
-        {/* Back Button */}
         <button
           onClick={() => navigate("/admin/products")}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition"
@@ -91,14 +83,12 @@ const AddProduct = () => {
           Back to Products
         </button>
 
-        {/* Form Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">
             Add New Product
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Name *
@@ -108,13 +98,12 @@ const AddProduct = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter product name"
                 required
               />
             </div>
 
-            {/* Price & Original Price */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -125,7 +114,7 @@ const AddProduct = () => {
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
                   required
                 />
@@ -139,13 +128,12 @@ const AddProduct = () => {
                   name="originalPrice"
                   value={formData.originalPrice}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
                 />
               </div>
             </div>
 
-            {/* Category & Stock */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -155,7 +143,7 @@ const AddProduct = () => {
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="">Select Category</option>
@@ -175,14 +163,13 @@ const AddProduct = () => {
                   name="stock"
                   value={formData.stock}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
                   required
                 />
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -191,55 +178,65 @@ const AddProduct = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Describe your product..."
                 rows="4"
               />
             </div>
 
-            {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Image *
+                Product Image URL *
               </label>
-              {imagePreview ? (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-xl border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 transition bg-gray-50">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500">
-                      Click to upload image
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PNG, JPG, WEBP (Max 5MB)
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    required={!imagePreview}
-                  />
-                </label>
-              )}
+              <input
+                type="url"
+                name="image"
+                value={formData.image}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://i.ibb.co/xxxxx/image.jpg"
+                required
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Upload image to{" "}
+                <a
+                  href="https://imgbb.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  ImgBB
+                </a>{" "}
+                or{" "}
+                <a
+                  href="https://cloudinary.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  Cloudinary
+                </a>{" "}
+                and paste the direct link
+              </p>
             </div>
 
-            {/* Submit */}
+            {formData.image && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Preview:
+                </p>
+                <img
+                  src={formData.image}
+                  alt="Preview"
+                  className="w-32 h-32 object-cover rounded-xl border border-gray-200"
+                  onError={(e) => {
+                    e.target.src =
+                      "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27128%27 height=%27128%27 viewBox=%270 0 128 128%27%3E%3Crect width=%27128%27 height=%27128%27 fill=%27%23f3f4f6%27/%3E%3Ctext x=%2764%27 y=%2764%27 font-family=%27sans-serif%27 font-size=%2710%27 fill=%27%239ca3af%27 text-anchor=%27middle%27%3EInvalid%3C/text%3E%3C/svg%3E";
+                  }}
+                />
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"

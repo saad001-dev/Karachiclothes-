@@ -22,7 +22,6 @@ class TelegramService {
 
       const url = `${this.baseUrl}/sendMessage`;
 
-      // ✅ Base payload
       const payload = {
         chat_id: this.chatId,
         text: message,
@@ -30,7 +29,6 @@ class TelegramService {
         disable_web_page_preview: true,
       };
 
-      // ✅ WhatsApp Button
       if (phone) {
         let formattedPhone = phone.replace(/\D/g, "");
         if (formattedPhone.startsWith("0")) {
@@ -43,8 +41,6 @@ class TelegramService {
         const whatsappMessage = encodeURIComponent(
           `Assalam-o-Alaikum! ❤️%0A%0AThank you for your order from Karachi Clothes!%0A%0A📋 Order ID: ${orderId}%0A%0AWe will contact you shortly for confirmation.%0A%0A🌐 https://karachi-clothes.vercel.app`,
         );
-
-        // ✅ Inline Keyboard
         const replyMarkup = {
           inline_keyboard: [
             [
@@ -55,8 +51,8 @@ class TelegramService {
             ],
             [
               {
-                text: "📞 Call Customer",
-                url: `tel:${formattedPhone}`,
+                text: `📞 Call: ${formattedPhone}`,
+                url: `https://wa.me/${formattedPhone}`,
               },
             ],
           ],
@@ -65,9 +61,9 @@ class TelegramService {
         payload.reply_markup = JSON.stringify(replyMarkup);
       }
 
-      // ✅ Send to Telegram
       const response = await axios.post(url, payload, {
-        timeout: 10000,
+        timeout: 15000,
+        proxy: false,
         headers: {
           "Content-Type": "application/json",
         },
